@@ -1,7 +1,25 @@
 import { mockEntries } from "@/lib/mockData";
+import { createSupabaseAdminClient, hasSupabaseAdminConfig } from "@/lib/supabaseAdmin";
 import { hasSupabaseConfig, createSupabaseBrowserClient } from "@/lib/supabaseClient";
-import type { PortfolioEntry, PortfolioFile } from "@/lib/types";
+import type { EntryType, PortfolioEntry, PortfolioFile } from "@/lib/types";
 import { sortByFinalDate } from "@/lib/date";
+
+export type EntryPayload = {
+  type: EntryType;
+  title: string;
+  summary?: string;
+  description?: string;
+  finalDate: string;
+  tags?: string[];
+  techStack?: string[];
+  organization?: string;
+  role?: string;
+  result?: string;
+  links?: PortfolioEntry["links"];
+  thumbnailUrl?: string;
+  isFeatured?: boolean;
+  isPublic?: boolean;
+};
 
 type DbEntry = {
   id: string;
@@ -76,7 +94,45 @@ function mapFile(file: DbFile): PortfolioFile {
   };
 }
 
+function toDbPayload(ownerId: string, payload: EntryPayload) {
+  return {
+    owner_id: ownerId,
+    type: payload.type,
+    title: payload.title,
+    summary: payload.summary ?? "",
+    description: payload.description ?? "",
+    final_date: payload.finalDate,
+    tags: payload.tags ?? [],
+    tech_stack: payload.techStack ?? [],
+    organization: payload.organization ?? "",
+    role: payload.role ?? "",
+    result: payload.result ?? "",
+    links: payload.links ?? {},
+    thumbnail_url: payload.thumbnailUrl ?? "",
+    is_featured: payload.isFeatured ?? false,
+    is_public: payload.isPublic ?? true
+  };
+}
+
+async function getFiles() {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from("portfolio_files").select("*").order("created_at", { ascending: false });
+  return ((data ?? []) as DbFile[]).map(mapFile);
+}
+
 export async function getEntries(): Promise<PortfolioEntry[]> {
+  if (hasSupabaseAdminConfig()) {
+    const supabase = createSupabaseAdminClient();
+    if (supabase) {
+      const [{ data: entries }, files] = await Promise.all([
+        supabase.from("portfolio_entries").select("*").eq("is_public", true).order("final_date", { ascending: false }),
+        getFiles()
+      ]);
+      if (entries) return (entries as DbEntry[]).map((entry) => mapEntry(entry, files.filter((file) => file.entryId === entry.id)));
+    }
+  }
+
   if (!hasSupabaseConfig()) {
     return sortByFinalDate(mockEntries);
   }
@@ -94,15 +150,34 @@ export async function getEntries(): Promise<PortfolioEntry[]> {
   }
 
   const mappedFiles = ((files ?? []) as DbFile[]).map(mapFile);
-  return (entries as DbEntry[]).map((entry) =>
-    mapEntry(
-      entry,
-      mappedFiles.filter((file) => file.entryId === entry.id)
-    )
-  );
+  return (entries as DbEntry[]).map((entry) => mapEntry(entry, mappedFiles.filter((file) => file.entryId === entry.id)));
+}
+
+export async function getEntryById(id: string): Promise<PortfolioEntry | null> {
+  if (hasSupabaseAdminConfig()) {
+    const supabase = createSupabaseAdminClient();
+    if (supabase) {
+      const [{ data: entry }, files] = await Promise.all([
+        supabase.from("portfolio_entries").select("*").eq("id", id).eq("is_public", true).maybeSingle(),
+        getFiles()
+      ]);
+      if (entry) return mapEntry(entry as DbEntry, files.filter((file) => file.entryId === id));
+    }
+  }
+
+  return mockEntries.find((entry) => entry.id === id && entry.isPublic) ?? null;
 }
 
 export async function getAllEntriesForAdmin(ownerId?: string): Promise<PortfolioEntry[]> {
+  if (hasSupabaseAdminConfig()) {
+    const supabase = createSupabaseAdminClient();
+    if (supabase) {
+      const query = supabase.from("portfolio_entries").select("*").order("final_date", { ascending: false });
+      const [{ data: entries }, files] = await Promise.all([ownerId ? query.eq("owner_id", ownerId) : query, getFiles()]);
+      if (entries) return (entries as DbEntry[]).map((entry) => mapEntry(entry, files.filter((file) => file.entryId === entry.id)));
+    }
+  }
+
   if (!hasSupabaseConfig()) {
     return sortByFinalDate(ownerId ? mockEntries.filter((entry) => entry.ownerId === ownerId) : mockEntries);
   }
@@ -111,21 +186,44 @@ export async function getAllEntriesForAdmin(ownerId?: string): Promise<Portfolio
   if (!supabase) return sortByFinalDate(ownerId ? mockEntries.filter((entry) => entry.ownerId === ownerId) : mockEntries);
 
   const [{ data: entries }, { data: files }] = await Promise.all([
-    supabase
-      .from("portfolio_entries")
-      .select("*")
-      .eq("owner_id", ownerId ?? "")
-      .order("final_date", { ascending: false }),
+    supabase.from("portfolio_entries").select("*").eq("owner_id", ownerId ?? "").order("final_date", { ascending: false }),
     supabase.from("portfolio_files").select("*").order("created_at", { ascending: false })
   ]);
 
   if (!entries) return sortByFinalDate(ownerId ? mockEntries.filter((entry) => entry.ownerId === ownerId) : mockEntries);
 
   const mappedFiles = ((files ?? []) as DbFile[]).map(mapFile);
-  return (entries as DbEntry[]).map((entry) =>
-    mapEntry(
-      entry,
-      mappedFiles.filter((file) => file.entryId === entry.id)
-    )
-  );
+  return (entries as DbEntry[]).map((entry) => mapEntry(entry, mappedFiles.filter((file) => file.entryId === entry.id)));
+}
+
+export async function createEntryForOwner(ownerId: string, payload: EntryPayload) {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.from("portfolio_entries").insert(toDbPayload(ownerId, payload)).select("*").single();
+  if (error || !data) return null;
+  return mapEntry(data as DbEntry, []);
+}
+
+export async function updateEntryForOwner(ownerId: string, id: string, payload: EntryPayload) {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("portfolio_entries")
+    .update(toDbPayload(ownerId, payload))
+    .eq("id", id)
+    .eq("owner_id", ownerId)
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return mapEntry(data as DbEntry, []);
+}
+
+export async function deleteEntryForOwner(ownerId: string, id: string) {
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from("portfolio_entries").delete().eq("id", id).eq("owner_id", ownerId);
+  return !error;
 }

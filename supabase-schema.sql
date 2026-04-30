@@ -1,5 +1,12 @@
 create extension if not exists pgcrypto;
 
+create table if not exists portfolio_users (
+  id text primary key,
+  name text not null,
+  password_hash text not null,
+  created_at timestamp with time zone default now()
+);
+
 create table if not exists portfolio_entries (
   id uuid primary key default gen_random_uuid(),
   owner_id text not null,
@@ -47,6 +54,7 @@ create trigger portfolio_entries_updated_at
 before update on portfolio_entries
 for each row execute function set_updated_at();
 
+alter table portfolio_users enable row level security;
 alter table portfolio_entries enable row level security;
 alter table portfolio_files enable row level security;
 
@@ -69,4 +77,4 @@ using (
 create index if not exists portfolio_entries_owner_id_idx on portfolio_entries(owner_id);
 create index if not exists portfolio_entries_final_date_idx on portfolio_entries(final_date desc);
 
--- owner_id is matched with PORTFOLIO_USER_1_ID / PORTFOLIO_USER_2_ID in the app.
+-- Writes are performed by the app through SUPABASE_SERVICE_ROLE_KEY.

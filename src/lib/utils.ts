@@ -26,3 +26,10 @@ export const typeStyles: Record<EntryType, string> = {
   award: "border-amber-300/40 bg-amber-300/10 text-amber-100",
   research: "border-fuchsia-300/40 bg-fuchsia-300/10 text-fuchsia-100"
 };
+
+export const typeRoutes: Record<EntryType, string> = {
+  project: "projects",
+  activity: "activities",
+  award: "awards",
+  research: "research"
+};
