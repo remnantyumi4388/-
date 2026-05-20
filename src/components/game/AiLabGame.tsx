@@ -45,13 +45,13 @@ const WORLD_Z_MAX = 13;
 const SYNC_MS = 420;
 
 const rooms: Room[] = [
-  { id: "lobby", name: "LOBBY", x: 0, z: 0, w: 7.8, d: 6.7, color: 0x263950, accent: 0x67e8f9 },
-  { id: "server", name: "SERVER", x: -8.5, z: -6.5, w: 6.2, d: 5.1, color: 0x152f48, accent: 0x22c55e },
-  { id: "electrical", name: "ELECTRICAL", x: 8.5, z: -6.5, w: 6.2, d: 5.1, color: 0x2f3345, accent: 0xfacc15 },
-  { id: "core", name: "AI CORE", x: 0, z: 7.8, w: 7.1, d: 5.7, color: 0x202841, accent: 0xef4444 },
-  { id: "security", name: "SECURITY", x: -10, z: 4.5, w: 5.2, d: 4.6, color: 0x12293f, accent: 0x38bdf8 },
-  { id: "cafeteria", name: "CAFETERIA", x: 9.5, z: 4.8, w: 5.6, d: 4.9, color: 0x263445, accent: 0x34d399 },
-  { id: "medbay", name: "MEDBAY", x: 0, z: -10.2, w: 5.8, d: 3.4, color: 0x1f3a4b, accent: 0xa78bfa }
+  { id: "lobby", name: "LOBBY", x: 0, z: 0, w: 7.8, d: 6.7, color: 0x6b7c8f, accent: 0x38bdf8 },
+  { id: "server", name: "SERVER", x: -8.5, z: -6.5, w: 6.2, d: 5.1, color: 0x526a7c, accent: 0x22c55e },
+  { id: "electrical", name: "ELECTRICAL", x: 8.5, z: -6.5, w: 6.2, d: 5.1, color: 0x6f6a5f, accent: 0xfacc15 },
+  { id: "core", name: "AI CORE", x: 0, z: 7.8, w: 7.1, d: 5.7, color: 0x5b6474, accent: 0xef4444 },
+  { id: "security", name: "SECURITY", x: -10, z: 4.5, w: 5.2, d: 4.6, color: 0x51687a, accent: 0x38bdf8 },
+  { id: "cafeteria", name: "CAFETERIA", x: 9.5, z: 4.8, w: 5.6, d: 4.9, color: 0x697782, accent: 0x34d399 },
+  { id: "medbay", name: "MEDBAY", x: 0, z: -10.2, w: 5.8, d: 3.4, color: 0x64798a, accent: 0xa78bfa }
 ];
 
 const localTemplate = [
@@ -148,22 +148,22 @@ function createRobot(color: string) {
   const group = new THREE.Group();
   const bodyMaterial = new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.42,
-    metalness: 0.22
+    roughness: 0.34,
+    metalness: 0.3
   });
   const darkMaterial = new THREE.MeshStandardMaterial({
-    color: 0x07111f,
-    roughness: 0.24,
-    metalness: 0.55,
-    emissive: 0x07111f,
-    emissiveIntensity: 0.6
+    color: 0x1f2937,
+    roughness: 0.3,
+    metalness: 0.62,
+    emissive: 0x0f172a,
+    emissiveIntensity: 0.28
   });
   const glassMaterial = new THREE.MeshStandardMaterial({
-    color: 0x082f49,
+    color: 0x0b3858,
     emissive: 0x38bdf8,
-    emissiveIntensity: 0.75,
-    roughness: 0.18,
-    metalness: 0.6
+    emissiveIntensity: 0.95,
+    roughness: 0.12,
+    metalness: 0.74
   });
 
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.76, 10, 18), bodyMaterial);
@@ -210,8 +210,8 @@ function createRobot(color: string) {
 function addRoom(scene: THREE.Scene, room: Room) {
   const floorMaterial = new THREE.MeshStandardMaterial({
     color: room.color,
-    roughness: 0.62,
-    metalness: 0.28
+    roughness: 0.48,
+    metalness: 0.38
   });
   const floor = new THREE.Mesh(new THREE.BoxGeometry(room.w, 0.13, room.d), floorMaterial);
   floor.position.set(room.x, -0.07, room.z);
@@ -221,16 +221,16 @@ function addRoom(scene: THREE.Scene, room: Room) {
   const trimMaterial = new THREE.MeshStandardMaterial({
     color: room.accent,
     emissive: room.accent,
-    emissiveIntensity: 0.65,
-    roughness: 0.35,
-    metalness: 0.5
+    emissiveIntensity: 0.38,
+    roughness: 0.28,
+    metalness: 0.62
   });
   const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0b1220,
-    roughness: 0.45,
-    metalness: 0.58,
+    color: 0x9aa6b2,
+    roughness: 0.42,
+    metalness: 0.52,
     transparent: true,
-    opacity: 0.58,
+    opacity: 0.36,
     depthWrite: false
   });
   const wallHeight = 1.55;
@@ -254,6 +254,24 @@ function addRoom(scene: THREE.Scene, room: Room) {
   ring.rotation.x = Math.PI / 2;
   scene.add(ring);
 
+  const seamMaterial = new THREE.MeshStandardMaterial({
+    color: 0xcbd5e1,
+    roughness: 0.55,
+    metalness: 0.38,
+    transparent: true,
+    opacity: 0.42
+  });
+  for (let ix = -1; ix <= 1; ix += 1) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.025, room.d * 0.82), seamMaterial);
+    seam.position.set(room.x + (ix * room.w) / 4, 0.03, room.z);
+    scene.add(seam);
+  }
+  for (let iz = -1; iz <= 1; iz += 1) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(room.w * 0.82, 0.025, 0.035), seamMaterial);
+    seam.position.set(room.x, 0.031, room.z + (iz * room.d) / 4);
+    scene.add(seam);
+  }
+
   const sign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.06), trimMaterial);
   sign.position.set(room.x, 1.2, room.z - room.d / 2 + 0.1);
   scene.add(sign);
@@ -262,16 +280,16 @@ function addRoom(scene: THREE.Scene, room: Room) {
 function addCorridor(scene: THREE.Scene, x: number, z: number, w: number, d: number) {
   const floor = new THREE.Mesh(
     new THREE.BoxGeometry(w, 0.09, d),
-    new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.72, metalness: 0.3 })
+    new THREE.MeshStandardMaterial({ color: 0x687887, roughness: 0.56, metalness: 0.36 })
   );
   floor.position.set(x, -0.08, z);
   floor.receiveShadow = true;
   scene.add(floor);
 
   const stripeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
+    color: 0xdbeafe,
     emissive: 0x0891b2,
-    emissiveIntensity: 0.55
+    emissiveIntensity: 0.28
   });
   [-0.42, 0.42].forEach((offset) => {
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(w, 0.025, 0.04), stripeMaterial);
@@ -315,11 +333,20 @@ function addConsole(scene: THREE.Scene, task: Task, color = 0x22c55e) {
 }
 
 function addDecor(scene: THREE.Scene) {
-  const crateMaterial = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.55, metalness: 0.38 });
+  const crateMaterial = new THREE.MeshStandardMaterial({ color: 0x7b8794, roughness: 0.48, metalness: 0.42 });
   const cyanMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0e7490,
+    color: 0xbae6fd,
     emissive: 0x22d3ee,
-    emissiveIntensity: 0.8
+    emissiveIntensity: 0.48
+  });
+  const windowMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1e5f83,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.28,
+    roughness: 0.18,
+    metalness: 0.55,
+    transparent: true,
+    opacity: 0.64
   });
 
   [
@@ -346,6 +373,38 @@ function addDecor(scene: THREE.Scene) {
     const doorLight = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 0.08), cyanMaterial);
     doorLight.position.set(x, 0.12, z);
     scene.add(doorLight);
+  });
+
+  [
+    [-12.4, -2.6, Math.PI / 2],
+    [12.4, 2.6, Math.PI / 2],
+    [-3.8, 12.4, 0],
+    [3.8, -12.4, 0]
+  ].forEach(([x, z, rotation]) => {
+    const windowPanel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.2, 0.08), windowMaterial);
+    windowPanel.position.set(x, 1.25, z);
+    windowPanel.rotation.y = rotation;
+    scene.add(windowPanel);
+  });
+
+  const softPanelMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    emissive: 0xf8fafc,
+    emissiveIntensity: 0.7,
+    roughness: 0.35,
+    metalness: 0.18
+  });
+  [
+    [-6, 2.2],
+    [6, 2.2],
+    [-6, -2.2],
+    [6, -2.2],
+    [0, 10.4],
+    [0, -9.8]
+  ].forEach(([x, z]) => {
+    const ceilingPanel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.04, 0.42), softPanelMaterial);
+    ceilingPanel.position.set(x, 2.6, z);
+    scene.add(ceilingPanel);
   });
 }
 
@@ -810,8 +869,8 @@ export function AiLabGame() {
     if (!mount) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020617);
-    scene.fog = new THREE.Fog(0x020617, 13, 42);
+    scene.background = new THREE.Color(0x102030);
+    scene.fog = new THREE.Fog(0x102030, 18, 48);
     sceneRef.current = scene;
     const robots = robotRefs.current;
     const consoles = consoleRefs.current;
@@ -827,17 +886,23 @@ export function AiLabGame() {
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setClearColor(0x020617, 1);
+    renderer.setClearColor(0x102030, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const ambient = new THREE.AmbientLight(0x8bdcff, 0.5);
+    const ambient = new THREE.AmbientLight(0xe0f2fe, 0.86);
     scene.add(ambient);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.85);
-    keyLight.position.set(4, 12, 5);
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x334155, 1.1);
+    scene.add(hemiLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.35);
+    keyLight.position.set(5, 13, 6);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
     scene.add(keyLight);
@@ -849,6 +914,19 @@ export function AiLabGame() {
     const coreLight = new THREE.PointLight(0x22d3ee, 1.7, 22);
     coreLight.position.set(0, 3.2, 7.8);
     scene.add(coreLight);
+
+    [
+      [-8.5, 2.4, -6.5],
+      [8.5, 2.4, -6.5],
+      [0, 2.4, 0],
+      [0, 2.4, 7.8],
+      [-10, 2.4, 4.5],
+      [9.5, 2.4, 4.8]
+    ].forEach(([x, y, z]) => {
+      const roomLight = new THREE.PointLight(0xf8fafc, 0.92, 7.2);
+      roomLight.position.set(x, y, z);
+      scene.add(roomLight);
+    });
 
     addCorridor(scene, 0, 0, 25, 2.2);
     addCorridor(scene, 0, -6.5, 19, 2.1);
@@ -1011,10 +1089,11 @@ export function AiLabGame() {
         cameraRef.current.lookAt(target);
       }
 
-      ambient.intensity = currentLightsOut ? 0.12 : 0.5;
-      keyLight.intensity = currentLightsOut ? 0.35 : 1.85;
-      redWarning.intensity = currentLightsOut ? 5.5 : 0;
-      coreLight.intensity = currentLightsOut ? 0.55 : 1.7;
+      ambient.intensity = currentLightsOut ? 0.28 : 0.86;
+      hemiLight.intensity = currentLightsOut ? 0.34 : 1.1;
+      keyLight.intensity = currentLightsOut ? 0.72 : 2.35;
+      redWarning.intensity = currentLightsOut ? 4.2 : 0;
+      coreLight.intensity = currentLightsOut ? 0.72 : 1.7;
 
       frameId = requestAnimationFrame(animate);
       renderer.render(scene, camera);
