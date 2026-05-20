@@ -480,6 +480,7 @@ export function AiLabGame() {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [pendingStartMode, setPendingStartMode] = useState<Mode | null>(null);
+  const [clearedTaskNotice, setClearedTaskNotice] = useState<{ id: string; name: string; room: string } | null>(null);
   const [cameraZoom, setCameraZoom] = useState(58);
   const [, setUiPulse] = useState(0);
 
@@ -541,6 +542,7 @@ export function AiLabGame() {
     setLocalWrongVotes(0);
     setActiveTaskId(null);
     setTaskProgress(0);
+    setClearedTaskNotice(null);
     sabotageClockRef.current = 0;
     botWorkClockRef.current = 0;
     setMessage("로컬 로비로 돌아왔습니다.");
@@ -620,6 +622,7 @@ export function AiLabGame() {
     setLocalStatus("playing");
     setActiveTaskId(null);
     setTaskProgress(0);
+    setClearedTaskNotice(null);
     setMessage("역할이 배정되었습니다. 미션과 투표로 승리하세요.");
     setLocalChat([createLocalMessage("역할이 배정되었습니다. 가짜 연구원을 찾아내세요.")]);
   }, []);
@@ -639,6 +642,7 @@ export function AiLabGame() {
     try {
       await postOnline("restart", { code: roomCode, playerId });
       playerPositionRef.current = { x: 0, z: 1.2 };
+      setClearedTaskNotice(null);
       setMessage("온라인 로비로 돌아왔습니다.");
     } catch (error) {
       setNetworkMessage(error instanceof Error ? error.message : "재시작 실패");
@@ -700,6 +704,7 @@ export function AiLabGame() {
       if (status !== "playing" || activeTaskId) return;
       setActiveTaskId(task.id);
       setTaskProgress(0);
+      setClearedTaskNotice(null);
       setMessage(`${task.name} 진행 중... 콘솔 앞에 머무르세요.`);
     },
     [activeTaskId, status]
@@ -1234,11 +1239,17 @@ export function AiLabGame() {
       setTaskProgress((current) => {
         const next = Math.min(current + 0.2, task.duration);
         if (next >= task.duration) {
+          const isResearcherTaskClear = userRole !== "fakeResearcher";
           setActiveTaskId(null);
           setTaskProgress(0);
-          setMessage(`${task.name} 완료.`);
+          setMessage(isResearcherTaskClear ? `${task.name} 완료.` : `${task.name} 근처에서 작업하는 척했습니다.`);
           if (mode === "online") {
-            void postOnline("completeTask", { code: roomCode, playerId, taskId: task.id });
+            void postOnline("completeTask", { code: roomCode, playerId, taskId: task.id }).then((data) => {
+              const completedTask = data.room?.tasks.find((item) => item.id === task.id && item.completed);
+              if (completedTask) {
+                setClearedTaskNotice({ id: completedTask.id, name: completedTask.name, room: completedTask.room });
+              }
+            });
           } else if (userRole === "fakeResearcher") {
             setLocalChat((chat) => [...chat, createLocalMessage(`${currentPlayer?.name ?? "Player"}님이 미션 콘솔 근처에 머물렀습니다.`)]);
           } else {
@@ -1247,6 +1258,7 @@ export function AiLabGame() {
                 item.id === task.id ? { ...item, completed: true, completedBy: playerId } : item
               )
             );
+            setClearedTaskNotice({ id: task.id, name: task.name, room: task.room });
             setLocalChat((chat) => [...chat, createLocalMessage(`${task.name} 완료.`)]);
           }
           return 0;
@@ -1263,6 +1275,14 @@ export function AiLabGame() {
       finishLocalGame("researchersWin", "모든 미션 완료. 연구원 팀 승리!");
     }
   }, [finishLocalGame, localStatus, localTasks, mode]);
+
+  useEffect(() => {
+    if (!clearedTaskNotice) return;
+
+    const timeout = window.setTimeout(() => setClearedTaskNotice(null), 2400);
+
+    return () => window.clearTimeout(timeout);
+  }, [clearedTaskNotice]);
 
   const taskProgressPercent = activeTaskId
     ? Math.round((taskProgress / (tasks.find((task) => task.id === activeTaskId)?.duration ?? 1)) * 100)
@@ -1382,10 +1402,12 @@ export function AiLabGame() {
             ))}
           </div>
           {tasks.map((task) => (
-            <div key={task.id} className="mission-row">
+            <div key={task.id} className={task.completed ? "mission-row mission-row--complete" : "mission-row"}>
               <CheckCircle2 size={15} className={task.completed ? "complete" : ""} />
               <span>{task.name}</span>
-              <small>{task.room}</small>
+              <small className={task.completed ? "mission-status mission-status--complete" : "mission-status"}>
+                {task.completed ? "클리어" : task.room}
+              </small>
             </div>
           ))}
         </div>
@@ -1516,6 +1538,18 @@ export function AiLabGame() {
           <p>미션 수행 중</p>
           <div className="progress-track">
             <span style={{ width: `${taskProgressPercent}%` }} />
+          </div>
+        </div>
+      )}
+
+      {clearedTaskNotice && status === "playing" && (
+        <div className="mission-clear-toast" role="status">
+          <CheckCircle2 size={20} />
+          <div>
+            <strong>미션 클리어</strong>
+            <span>
+              {clearedTaskNotice.name} 체크 완료 · {clearedTaskNotice.room}
+            </span>
           </div>
         </div>
       )}

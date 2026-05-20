@@ -316,8 +316,21 @@ a {
   grid-template-columns: 18px 1fr auto;
   align-items: center;
   gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
   color: #d8ebf7;
   font-size: 0.84rem;
+  padding: 4px 5px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.mission-row--complete {
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(34, 197, 94, 0.1);
+  color: #f0fff7;
 }
 
 .mission-row small {
@@ -326,8 +339,17 @@ a {
   font-weight: 900;
 }
 
+.mission-status--complete {
+  border: 1px solid rgba(74, 222, 128, 0.34);
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac !important;
+  padding: 3px 7px;
+}
+
 .mission-row .complete {
   color: #34d399;
+  filter: drop-shadow(0 0 7px rgba(52, 211, 153, 0.58));
 }
 
 .game-input {
@@ -679,6 +701,46 @@ a {
   margin: 0 0 9px;
   font-size: 0.9rem;
   font-weight: 1000;
+}
+
+.mission-clear-toast {
+  position: absolute;
+  bottom: 214px;
+  left: 50%;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: min(360px, calc(100vw - 48px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(74, 222, 128, 0.48);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.24), rgba(34, 211, 238, 0.16)),
+    rgba(5, 18, 27, 0.9);
+  box-shadow:
+    0 0 28px rgba(34, 197, 94, 0.26),
+    0 18px 40px rgba(0, 0, 0, 0.34);
+  color: #bbf7d0;
+  padding: 13px 15px;
+}
+
+.mission-clear-toast strong,
+.mission-clear-toast span {
+  display: block;
+}
+
+.mission-clear-toast strong {
+  color: #f0fff7;
+  font-size: 0.95rem;
+  font-weight: 1000;
+}
+
+.mission-clear-toast span {
+  margin-top: 2px;
+  color: #d9fff0;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .progress-track {
@@ -1100,11 +1162,15 @@ a {
   }
 
   .mission-row {
-    grid-template-columns: 18px 1fr;
+    grid-template-columns: 18px 1fr auto;
   }
 
   .mission-row small {
     display: none;
+  }
+
+  .mission-row--complete small {
+    display: inline-flex;
   }
 
   .panel {
@@ -1113,5 +1179,9 @@ a {
 
   .task-overlay {
     bottom: 124px;
+  }
+
+  .mission-clear-toast {
+    bottom: 184px;
   }
 }
