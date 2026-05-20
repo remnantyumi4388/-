@@ -190,15 +190,17 @@ a {
 }
 
 .status-strip span {
-  min-width: 104px;
+  min-width: 142px;
   border: 1px solid rgba(196, 221, 236, 0.28);
   border-radius: 6px;
   background: rgba(25, 41, 58, 0.7);
   padding: 8px 10px;
-  text-align: center;
+  text-align: left;
   color: #dff7ff;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .danger-text {
@@ -714,6 +716,7 @@ a {
 
 .meeting-modal,
 .role-modal,
+.tutorial-modal,
 .result-modal {
   width: min(620px, 100%);
   border-radius: 8px;
@@ -787,6 +790,103 @@ a {
   margin: 14px 0 0;
   color: #a9bfd2;
   font-size: 0.88rem;
+}
+
+.tutorial-modal {
+  display: grid;
+  gap: 16px;
+}
+
+.tutorial-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tutorial-head p,
+.tutorial-head h2,
+.tutorial-step-card h3,
+.tutorial-step-card p {
+  margin: 0;
+}
+
+.tutorial-head p {
+  color: #67e8f9;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+}
+
+.tutorial-head h2 {
+  margin-top: 5px;
+  color: #f8fafc;
+  font-size: clamp(1.45rem, 4vw, 2.35rem);
+  line-height: 1.08;
+}
+
+.tutorial-close {
+  min-width: 54px;
+  padding: 0 12px;
+  color: #e0f7ff;
+  font-size: 0.78rem;
+}
+
+.tutorial-step-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.14), rgba(74, 222, 128, 0.08)),
+    rgba(9, 18, 30, 0.82);
+  padding: 18px;
+}
+
+.tutorial-step-card span {
+  width: fit-content;
+  border: 1px solid rgba(74, 222, 128, 0.38);
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  font-weight: 1000;
+}
+
+.tutorial-step-card h3 {
+  color: #e0f7ff;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+}
+
+.tutorial-step-card p {
+  color: #d5e7f6;
+  font-size: 0.98rem;
+  line-height: 1.58;
+}
+
+.tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+
+.tutorial-dots span {
+  height: 8px;
+  width: 28px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.tutorial-dots span.is-active {
+  background: linear-gradient(90deg, #22d3ee, #22c55e);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.42);
+}
+
+.tutorial-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 10px;
 }
 
 .role-modal {
@@ -926,7 +1026,10 @@ a {
 
   .status-strip span {
     min-width: auto;
-    flex: 1 1 42%;
+    flex: 1 1 46%;
+    padding: 7px 8px;
+    font-size: 0.75rem;
+    white-space: normal;
   }
 
   .hud-left,
@@ -965,6 +1068,10 @@ a {
   }
 
   .vote-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tutorial-actions {
     grid-template-columns: 1fr;
   }
 

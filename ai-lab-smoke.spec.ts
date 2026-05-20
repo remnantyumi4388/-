@@ -35,6 +35,8 @@ test("desktop game renders canvas and role modal", async ({ page }) => {
   expect(stats.width).toBeGreaterThan(800);
   expect(stats.lit).toBeGreaterThan(stats.total * 0.08);
   await page.getByRole("button", { name: "로컬 시작" }).click();
+  await expect(page.getByText("시작 전에 튜토리얼을 볼까요?")).toBeVisible();
+  await page.getByRole("button", { name: "바로 시작" }).click();
   await expect(page.getByText("YOUR ROLE")).toBeVisible();
 });
 

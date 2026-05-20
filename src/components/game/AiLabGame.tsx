@@ -61,6 +61,29 @@ const localTemplate = [
   { id: "bot-gold", name: "SunnyD", color: "#facc15", isBot: true, position: { x: 0, z: -2.6 } }
 ];
 
+const tutorialSteps = [
+  {
+    title: "1. 이동과 카메라",
+    body: "WASD로 움직이거나 바닥을 클릭해서 이동합니다. 마우스를 드래그하면 시점을 돌리고, 휠로 화면 거리를 조정할 수 있습니다.",
+    tag: "기본 조작"
+  },
+  {
+    title: "2. 미션 완료",
+    body: "서버실, 전기실, AI 코어실의 콘솔 가까이에서 미션 버튼을 누르세요. 진행 바가 끝날 때까지 콘솔 근처에 머무르면 미션이 완료됩니다.",
+    tag: "연구원 목표"
+  },
+  {
+    title: "3. 사보타지 대응",
+    body: "가짜 연구원은 조명 해킹을 일으킬 수 있습니다. 조명이 꺼지면 전기실로 이동해 조명 복구 버튼을 눌러 시야를 회복하세요.",
+    tag: "위기 대응"
+  },
+  {
+    title: "4. 회의와 투표",
+    body: "긴급 회의에서는 채팅으로 수상한 행동을 공유하고 투표합니다. 가짜 연구원을 맞히면 연구원 승리, 오추방이 쌓이면 가짜 연구원이 유리합니다.",
+    tag: "추리 승부"
+  }
+];
+
 const distance2D = (a: { x: number; z: number }, b: { x: number; z: number }) =>
   Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -106,14 +129,12 @@ function createLocalMessage(text: string, name = "SYSTEM", color = "#67e8f9"): C
 }
 
 function formatTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
+  const minutes = Math.floor(seconds / 60).toString();
   const rest = Math.floor(seconds % 60)
     .toString()
     .padStart(2, "0");
 
-  return `${minutes}:${rest}`;
+  return `${minutes} : ${rest}`;
 }
 
 function getRoomAt(position: { x: number; z: number }) {
@@ -456,6 +477,9 @@ export function AiLabGame() {
   const [message, setMessage] = useState("방을 만들거나 로컬 게임을 시작하세요.");
   const [chatInput, setChatInput] = useState("");
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [pendingStartMode, setPendingStartMode] = useState<Mode | null>(null);
   const [cameraZoom, setCameraZoom] = useState(58);
   const [, setUiPulse] = useState(0);
 
@@ -620,6 +644,33 @@ export function AiLabGame() {
       setNetworkMessage(error instanceof Error ? error.message : "재시작 실패");
     }
   }, [playerId, postOnline, roomCode]);
+
+  const openTutorialChoice = useCallback((nextMode: Mode) => {
+    setPendingStartMode(nextMode);
+    setTutorialStep(0);
+    setTutorialOpen(true);
+  }, []);
+
+  const closeTutorialChoice = useCallback(() => {
+    setTutorialOpen(false);
+    setPendingStartMode(null);
+    setTutorialStep(0);
+  }, []);
+
+  const beginAfterTutorial = useCallback(() => {
+    const nextMode = pendingStartMode ?? mode;
+
+    setTutorialOpen(false);
+    setPendingStartMode(null);
+    setTutorialStep(0);
+
+    if (nextMode === "online") {
+      void startOnlineGame();
+      return;
+    }
+
+    startLocalGame();
+  }, [mode, pendingStartMode, startLocalGame, startOnlineGame]);
 
   const triggerSabotage = useCallback(async () => {
     if (status !== "playing" || lightsOut) return;
@@ -1216,12 +1267,15 @@ export function AiLabGame() {
   const taskProgressPercent = activeTaskId
     ? Math.round((taskProgress / (tasks.find((task) => task.id === activeTaskId)?.duration ?? 1)) * 100)
     : 0;
+  const readableTime = formatTime(timeLeft);
   const roleTitle = userRole === "fakeResearcher" ? "가짜 연구원" : "연구원";
   const roleDescription =
     userRole === "fakeResearcher"
       ? "미션을 방해하고 조명 해킹으로 혼란을 만든 뒤, 회의에서 정체를 숨기세요."
       : "미션을 완료하고 채팅과 투표로 가짜 연구원을 찾아내세요.";
   const canStartOnline = mode === "online" && isHost && status === "lobby" && displayPlayers.length >= 2;
+  const currentTutorialStep = tutorialSteps[tutorialStep];
+  const isLastTutorialStep = tutorialStep === tutorialSteps.length - 1;
 
   return (
     <main className={lightsOut ? "game-shell game-shell--danger" : "game-shell"}>
@@ -1277,11 +1331,11 @@ export function AiLabGame() {
           </div>
         </div>
         <div className="status-strip">
-          <span>{formatTime(timeLeft)}</span>
-          <span>{completedTasks}/{tasks.length} TASKS</span>
-          <span>MISS {wrongVotes}/2</span>
-          <span>{currentLocation}</span>
-          <span className={lightsOut ? "danger-text" : ""}>{lightsOut ? "LIGHTS HACKED" : "SYSTEM ONLINE"}</span>
+          <span>남은 시간 : {readableTime}</span>
+          <span>미션 : {completedTasks} / {tasks.length}</span>
+          <span>오추방 : {wrongVotes} / 2</span>
+          <span>현재 위치 : {currentLocation}</span>
+          <span className={lightsOut ? "danger-text" : ""}>상태 : {lightsOut ? "조명 해킹" : "정상"}</span>
         </div>
       </section>
 
@@ -1373,12 +1427,12 @@ export function AiLabGame() {
         <div className="panel action-panel">
           {status === "lobby" && (
             <>
-              <button className="primary-action" onClick={startLocalGame}>
+              <button className="primary-action" onClick={() => openTutorialChoice("local")}>
                 <Play size={17} />
                 로컬 시작
               </button>
               {mode === "online" && (
-                <button className="primary-action" disabled={!canStartOnline} onClick={startOnlineGame}>
+                <button className="primary-action" disabled={!canStartOnline} onClick={() => openTutorialChoice("online")}>
                   <Play size={17} />
                   온라인 시작
                 </button>
@@ -1495,6 +1549,52 @@ export function AiLabGame() {
               </button>
             </div>
             <p className="meeting-copy">아래 채팅으로 위치, 미션, 수상한 행동을 공유한 뒤 투표하세요.</p>
+          </section>
+        </div>
+      )}
+
+      {tutorialOpen && status === "lobby" && (
+        <div className="modal-backdrop">
+          <section className="tutorial-modal">
+            <div className="tutorial-head">
+              <div>
+                <p>튜토리얼 선택</p>
+                <h2>시작 전에 튜토리얼을 볼까요?</h2>
+              </div>
+              <button className="icon-action tutorial-close" onClick={closeTutorialChoice} aria-label="튜토리얼 닫기">
+                닫기
+              </button>
+            </div>
+
+            <div className="tutorial-step-card">
+              <span>{currentTutorialStep.tag}</span>
+              <h3>{currentTutorialStep.title}</h3>
+              <p>{currentTutorialStep.body}</p>
+            </div>
+
+            <div className="tutorial-dots" aria-label={`튜토리얼 ${tutorialStep + 1} / ${tutorialSteps.length}`}>
+              {tutorialSteps.map((step, index) => (
+                <span key={step.title} className={index === tutorialStep ? "is-active" : ""} />
+              ))}
+            </div>
+
+            <div className="tutorial-actions">
+              <button className="secondary-action" onClick={beginAfterTutorial}>
+                바로 시작
+              </button>
+              {isLastTutorialStep ? (
+                <button className="primary-action" onClick={beginAfterTutorial}>
+                  튜토리얼 끝내고 시작
+                </button>
+              ) : (
+                <button
+                  className="primary-action"
+                  onClick={() => setTutorialStep((step) => Math.min(step + 1, tutorialSteps.length - 1))}
+                >
+                  {tutorialStep === 0 ? "튜토리얼 보기" : "다음"}
+                </button>
+              )}
+            </div>
           </section>
         </div>
       )}
